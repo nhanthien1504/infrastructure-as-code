@@ -1,4 +1,17 @@
-﻿**/.terraform/*
+﻿# Infrastructure-as-Code mono-repo
+
+- **SSoT**: config/
+- **Terraform**: 	erraform/
+- **Ansible**: nsible/
+- **CI templates**: ci-cd-templates/
+- **K8s**: kubernetes/
+- **Monitoring**: monitoring/
+- **ChatOps**: chatops/
+- **Data Platform**: data-platform/
+"@ | Set-Content README.md -Encoding UTF8
+
+@"
+**/.terraform/*
 *.tfstate
 *.tfstate.backup
 __pycache__/

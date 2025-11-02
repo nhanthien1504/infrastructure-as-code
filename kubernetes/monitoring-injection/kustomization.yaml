@@ -1,0 +1,12 @@
+﻿resources:
+  - ../base
+patches:
+  - target: { kind: Deployment, name: app }
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/project_id
+        value: 
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          logs.grafana.com/labels: "project_id=,environment="

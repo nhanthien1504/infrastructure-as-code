@@ -1,0 +1,7 @@
+﻿route:
+  receiver: slack
+receivers:
+  - name: slack
+    slack_configs:
+      - api_url: \
+        channel: "#alerts"
