@@ -9,11 +9,14 @@ stages:
   - validate
   - plan
   - apply
+  - destroy
 
 # Job này kiểm tra cú pháp của Terraform
 validate-terraform:
   stage: validate
-  image: hashicorp/terraform:light
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [""]
   script:
     - cd terraform/environments/aws # Chạy trong từng môi trường
     - terraform init -backend=false
@@ -22,7 +25,9 @@ validate-terraform:
 # Job này chạy 'terraform plan' để xem trước các thay đổi
 plan-terraform:
   stage: plan
-  image: hashicorp/terraform:light
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [""]
   script:
     - cd terraform/environments/aws
     - terraform init
@@ -34,11 +39,28 @@ plan-terraform:
 # Job này chạy 'terraform apply', chỉ chạy trên nhánh main và cần xác nhận thủ công
 apply-terraform:
   stage: apply
-  image: hashicorp/terraform:light
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [""]
   script:
     - cd terraform/environments/aws
     - terraform init
     - terraform apply -auto-approve tfplan
   rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+
+# Job này để PHÁ HỦY toàn bộ hạ tầng, cực kỳ nguy hiểm, cần xác nhận thủ công
+destroy-terraform:
+  stage: destroy
+  image:
+    name: hashicorp/terraform:light
+    entrypoint: [""]
+  script:
+    - cd terraform/environments/aws
+    - terraform init
+    - terraform destroy -auto-approve # Dùng -auto-approve vì đây là pipeline
+  rules:
+    # Chỉ cho phép chạy job này trên nhánh main và phải được kích hoạt thủ công
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
