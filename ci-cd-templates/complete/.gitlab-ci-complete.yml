@@ -1,0 +1,55 @@
+# ==============================================================================
+#  TEMPLATE: Complete CI/CD Pipeline Dispatcher
+#
+#  LƯU Ý QUAN TRỌNG: Cấu hình thông báo lỗi pipeline qua email
+#  Trong project ứng dụng, vào Settings > Notifications và thêm email người nhận
+#  cho sự kiện "Failed pipeline" để nhận cảnh báo khi có lỗi.
+#  Mô tả: Đây là file "entrypoint" mà các project sẽ include.
+#  Nó điều phối việc build và deploy đến đúng nền tảng.
+# ==============================================================================
+
+# Include các job/template thành phần
+include: # <-- Đọc các file này để biết có những job nào
+  - local: '/ci-cd-templates/base/.gitlab-ci-build.yml'       # Job 'build'
+  - local: '/ci-cd-templates/platforms/deploy-k8s.yml'      # Job 'deploy-to-kubernetes'
+  - local: '/ci-cd-templates/platforms/deploy-fargate.yml'  # Job 'deploy-to-fargate'
+  - local: '/ci-cd-templates/platforms/deploy-vm.yml'       # Job 'deploy-to-vm'
+  # - local: '/ci-cd-templates/base/.gitlab-ci-ai-check.yml' # (Optional)
+
+stages:
+  - setup
+  - build
+  - deploy
+
+# Job này đọc file config và quyết định nền tảng deploy
+# Nó sẽ tạo ra một file .env chứa biến DEPLOY_TARGET
+prepare-deployment-context: # <-- Job "bộ não" của pipeline
+  stage: setup
+  image: alpine:latest
+  before_script:
+    # Cài đặt các công cụ cần thiết
+    - apk add --no-cache yq git openssh-client
+    # Cấu hình để clone repo IaC một cách an toàn
+    # BIẾN $IAC_REPO_DEPLOY_KEY cần được tạo trong CI/CD Variables
+    - eval $(ssh-agent -s)
+    - echo "$IAC_REPO_DEPLOY_KEY" | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H your-gitlab.com >> ~/.ssh/known_hosts # Thay bằng domain GitLab của bạn
+  script:
+    # Clone repo IaC vào một thư mục tạm
+    # BIẾN $IAC_REPO_URL cần được tạo trong CI/CD Variables
+    - git clone $IAC_REPO_URL iac-repo
+    # Đọc file platform-mapping.yaml để tìm target cho project hiện tại ($CI_PROJECT_NAME)
+    - DEPLOY_TARGET=$(yq e ".mapping.$CI_PROJECT_NAME" iac-repo/config/platform-mapping.yaml)
+    - |
+      if [ "$DEPLOY_TARGET" == "null" ] || [ -z "$DEPLOY_TARGET" ]; then
+        echo "Không tìm thấy cấu hình deploy cho project $CI_PROJECT_NAME"
+        exit 1
+      fi
+    - echo "Project $CI_PROJECT_NAME sẽ được deploy lên: $DEPLOY_TARGET"
+    # Ghi biến vào file .env để các job sau có thể sử dụng
+    - echo "DEPLOY_TARGET=$DEPLOY_TARGET" > deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env # GitLab sẽ tự động load các biến trong file này

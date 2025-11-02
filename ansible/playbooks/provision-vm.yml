@@ -1,1 +1,23 @@
-﻿
+﻿---
+# This playbook performs initial setup on a new virtual machine.
+# It should be run once after the VM is created by Terraform.
+# It installs common utilities and security hardening.
+
+- hosts: all
+  become: yes
+  tasks:
+    - name: "Update apt cache"
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: "Install common packages (Docker, etc.)"
+      package:
+        name:
+          - docker.io
+          - ufw # Uncomplicated Firewall
+        state: present
+
+    # TODO: Add roles for installing monitoring agents (node-exporter, promtail)
+    # - include_role:
+    #     name: node-exporter

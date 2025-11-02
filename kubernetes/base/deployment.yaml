@@ -1,13 +1,30 @@
-﻿apiVersion: apps/v1
+﻿# kubernetes/base/deployment.yaml
+# Đây là file Deployment "template".
+# Các giá trị như image tag, replicas, env vars sẽ được Kustomize ghi đè.
+apiVersion: apps/v1
 kind: Deployment
-metadata: { name: app }
+metadata:
+  # Tên 'app' là một placeholder chung.
+  # Nếu các ứng dụng có tên khác nhau, cần có cơ chế để ghi đè.
+  name: app
 spec:
-  replicas: 2
-  selector: { matchLabels: { app: app } }
+  replicas: 1 # Sẽ được ghi đè cho staging/production
+  selector:
+    matchLabels:
+      app: app
   template:
-    metadata: { labels: { app: app } }
+    metadata:
+      labels:
+        app: app # Label này quan trọng để Service có thể tìm thấy Pod
     spec:
       containers:
         - name: app
-          image: REPLACED_BY_CI
-          ports: [{ containerPort: 8080 }]
+          # Tên image 'app' là placeholder, sẽ được Kustomize thay thế bằng
+          # $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+          image: app:latest
+          ports:
+            - containerPort: 8080 # Cổng mặc định, có thể được ghi đè
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

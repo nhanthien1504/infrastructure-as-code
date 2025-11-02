@@ -1,2 +1,11 @@
-﻿environments: {}
-# TODO: Dán dev/staging/prod (xem mẫu trước đó)
+﻿environments:
+  - name: dev
+    description: "Development environment for feature testing."
+    # Các biến/cấu hình đặc thù cho môi trường có thể được thêm ở đây
+    # ví dụ: domain: dev.example.com
+  - name: staging
+    description: "Staging environment for UAT and pre-production testing."
+    # ví dụ: domain: staging.example.com
+  - name: production
+    description: "Live production environment."
+    # ví dụ: domain: example.com

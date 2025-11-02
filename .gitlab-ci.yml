@@ -1,0 +1,44 @@
+# Pipeline này dùng để quản lý chính repo Infrastructure-as-Code
+
+# ==============================================================================
+#  LƯU Ý QUAN TRỌNG: Cấu hình thông báo lỗi pipeline qua email
+#  Vào Settings > Notifications và thêm email người nhận cho sự kiện "Failed pipeline".
+# ==============================================================================
+
+stages:
+  - validate
+  - plan
+  - apply
+
+# Job này kiểm tra cú pháp của Terraform
+validate-terraform:
+  stage: validate
+  image: hashicorp/terraform:light
+  script:
+    - cd terraform/environments/aws # Chạy trong từng môi trường
+    - terraform init -backend=false
+    - terraform validate
+
+# Job này chạy 'terraform plan' để xem trước các thay đổi
+plan-terraform:
+  stage: plan
+  image: hashicorp/terraform:light
+  script:
+    - cd terraform/environments/aws
+    - terraform init
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - terraform/environments/aws/tfplan
+
+# Job này chạy 'terraform apply', chỉ chạy trên nhánh main và cần xác nhận thủ công
+apply-terraform:
+  stage: apply
+  image: hashicorp/terraform:light
+  script:
+    - cd terraform/environments/aws
+    - terraform init
+    - terraform apply -auto-approve tfplan
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual

@@ -1,1 +1,28 @@
-﻿
+﻿# ansible/playbooks/deploy-app-vm.yml
+---
+- hosts: all
+  become: yes
+  vars:
+    # Các biến này sẽ được truyền từ GitLab CI qua --extra-vars
+    - image_name: "default/image"
+    - app_version: "latest"
+
+  tasks:
+    - name: "Pull the new Docker image"
+      community.docker.docker_image:
+        name: "{{ image_name }}:{{ app_version }}"
+        source: pull
+
+    - name: "Stop and remove the old container"
+      community.docker.docker_container:
+        name: "my-app-container"
+        state: absent
+
+    - name: "Start the new container"
+      community.docker.docker_container:
+        name: "my-app-container"
+        image: "{{ image_name }}:{{ app_version }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "80:8080"

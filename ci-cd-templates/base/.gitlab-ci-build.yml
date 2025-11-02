@@ -1,0 +1,33 @@
+# ==============================================================================
+#  TEMPLATE: Build Docker Image
+#  Mô tả: Build Docker image từ source code và đẩy lên Registry.
+#  Sử dụng các biến CI/CD của GitLab để tự động hóa.
+# ==============================================================================
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  variables:
+    # Sử dụng TLS để kết nối với Docker daemon
+    DOCKER_TLS_CERTDIR: "/certs"
+    # Tên image sẽ là: registry.example.com/group/project:tag
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  before_script:
+    # Đăng nhập vào GitLab Container Registry (hoặc ECR, Harbor...)
+    # CI_REGISTRY_USER và CI_REGISTRY_PASSWORD là các biến được cung cấp sẵn bởi GitLab
+    - echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  script:
+    - echo "Building Docker image: $IMAGE_TAG"
+    - docker build -t $IMAGE_TAG .
+    - echo "Pushing Docker image to registry: $IMAGE_TAG"
+    - docker push $IMAGE_TAG
+  rules:
+    # Chỉ chạy job này khi có thay đổi trong source code, không chạy cho các thay đổi file markdown
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - Dockerfile
+        - src/**/*
+        - package.json
+        - pom.xml
+        # Thêm các file/folder khác liên quan đến source code của bạn

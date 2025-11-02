@@ -1,2 +1,12 @@
-﻿mapping: {}
-# TODO: Dán mapping project -> target (eks/fargate/vm)
+﻿# SSoT (Single Source of Truth) for mapping projects to deployment platforms.
+# The 'prepare-deployment-context' job in the CI/CD pipeline reads this file
+# to determine which deploy template to use (k8s, fargate, vm).
+
+mapping:
+  # Ví dụ:
+  # Tên project phải khớp với $CI_PROJECT_NAME trong GitLab
+  project-alpha: eks # <-- A-ha! Job prepare sẽ đọc dòng này và quyết định DEPLOY_TARGET=eks
+  project-beta: fargate
+  project-gamma: vm
+  project-delta: aks
+  # TODO: Thêm 100 project của bạn vào đây

@@ -1,3 +1,7 @@
-﻿resources:
+﻿# kubernetes/base/kustomization.yaml
+# File này định nghĩa các tài nguyên thuộc base.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
   - deployment.yaml
   - service.yaml

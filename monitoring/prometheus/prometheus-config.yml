@@ -1,16 +1,24 @@
-﻿global:
+﻿# monitoring/prometheus/prometheus-config.yml
+global:
   scrape_interval: 15s
+
 scrape_configs:
-  - job_name: 'kubernetes-pods'
-    kubernetes_sd_configs: [{ role: pod }]
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Tự động phát hiện các service trong Kubernetes
+  - job_name: 'kubernetes-services'
+    kubernetes_sd_configs:
+      - role: service
     relabel_configs:
-      - action: replace
-        source_labels: [__meta_kubernetes_namespace]
-        target_label: namespace
-      - action: keep
-        source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        regex: "true"
-  - job_name: 'node-exporter'
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+
+  # Giám sát các máy chủ VM thông qua file_sd (file service discovery)
+  # Ansible sẽ chịu trách nhiệm tạo ra file targets.json này
+  - job_name: 'node-exporter-vms'
     file_sd_configs:
-      - files: [ /etc/prometheus/file_sd/node-exporter.json ]
-        refresh_interval: 1m
+      - files:
+          - '/etc/prometheus/file_sd/targets.json'

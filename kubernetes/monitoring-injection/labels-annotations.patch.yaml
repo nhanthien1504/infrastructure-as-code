@@ -1,1 +1,2 @@
-﻿## patch placeholder
+﻿## File này được để trống vì job CI/CD `deploy-k8s.yml`
+## sẽ tự động tạo ra nội dung patch này một cách linh động.

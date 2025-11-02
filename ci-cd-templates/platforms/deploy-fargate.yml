@@ -1,0 +1,45 @@
+# ci-cd-templates/platforms/deploy-fargate.yml
+
+deploy-to-fargate:
+  stage: deploy
+  image:
+    name: amazon/aws-cli:latest
+    entrypoint: [""]
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - echo "Deploying to AWS Fargate..."
+    # Các biến AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION cần được cấu hình trong CI/CD Variables
+    - TASK_DEFINITION_FAMILY="${CI_PROJECT_NAME}-${CI_ENVIRONMENT_NAME}"
+    - CLUSTER_NAME="fargate-cluster-${CI_ENVIRONMENT_NAME}"
+    - SERVICE_NAME="${CI_PROJECT_NAME}-service"
+    - IMAGE_URL="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+
+    # 1. Lấy Task Definition hiện tại
+    - TASK_DEFINITION_JSON=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_FAMILY --query 'taskDefinition')
+
+    # 2. Tạo Task Definition mới bằng cách cập nhật image
+    # Dùng `jq` để xử lý JSON
+    - NEW_CONTAINER_DEFINITIONS=$(echo $TASK_DEFINITION_JSON | jq --arg IMAGE_URL "$IMAGE_URL" '.containerDefinitions[0].image = $IMAGE_URL | .containerDefinitions')
+
+    # 3. Đăng ký Task Definition mới
+    - NEW_TASK_INFO=$(aws ecs register-task-definition \
+        --family "$TASK_DEFINITION_FAMILY" \
+        --container-definitions "$NEW_CONTAINER_DEFINITIONS" \
+        --cpu $(echo $TASK_DEFINITION_JSON | jq -r '.cpu') \
+        --memory $(echo $TASK_DEFINITION_JSON | jq -r '.memory') \
+        --network-mode $(echo $TASK_DEFINITION_JSON | jq -r '.networkMode') \
+        --execution-role-arn $(echo $TASK_DEFINITION_JSON | jq -r '.executionRoleArn') \
+        --task-role-arn $(echo $TASK_DEFINITION_JSON | jq -r '.taskRoleArn') \
+        )
+    - NEW_TASK_REVISION=$(echo $NEW_TASK_INFO | jq -r '.taskDefinition.revision')
+
+    # 4. Cập nhật ECS Service để sử dụng Task Definition mới
+    - aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --task-definition "${TASK_DEFINITION_FAMILY}:${NEW_TASK_REVISION}"
+    - echo "Deployment to Fargate initiated. New task revision: $NEW_TASK_REVISION"
+  environment:
+    name: $CI_ENVIRONMENT_NAME
+  rules:
+    # Chỉ chạy job này nếu DEPLOY_TARGET là 'fargate'
+    - if: '$DEPLOY_TARGET == "fargate"'
+      when: on_success

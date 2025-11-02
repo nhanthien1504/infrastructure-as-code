@@ -1,12 +1,3 @@
-﻿resources:
-  - ../base
-patches:
-  - target: { kind: Deployment, name: app }
-    patch: |-
-      - op: add
-        path: /spec/template/metadata/labels/project_id
-        value: 
-      - op: add
-        path: /spec/template/metadata/annotations
-        value:
-          logs.grafana.com/labels: "project_id=,environment="
+﻿# Thư mục này chứa các patch Kustomize liên quan đến monitoring.
+# Job CI/CD `deploy-k8s.yml` sẽ tự động tạo ra các patch cần thiết
+# dựa trên các biến môi trường, thay vì sử dụng các file tĩnh ở đây.

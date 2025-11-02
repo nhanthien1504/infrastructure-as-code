@@ -1,0 +1,51 @@
+# ci-cd-templates/platforms/deploy-k8s.yml
+
+deploy-to-kubernetes:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  script:
+    - echo "Deploying to Kubernetes..."
+    # 1. Tạo thư mục overlay cho môi trường hiện tại (dev, staging, prod)
+    - mkdir -p k8s-overlay/$CI_ENVIRONMENT_NAME
+    # 2. Tạo file kustomization.yaml cho overlay
+    - |
+      cat <<EOF > k8s-overlay/$CI_ENVIRONMENT_NAME/kustomization.yaml
+      resources:
+        - ../../../kubernetes/base  # Trỏ đến base chung
+
+      # Thêm monitoring injection
+      patches:
+        - path: labels-annotations.patch.yaml # SỬA LỖI: Tham chiếu đến patch được tạo động trong cùng thư mục
+          target:
+            kind: Deployment
+            name: app
+
+      # Ghi đè tên image với tag mới nhất
+      images:
+        - name: app # Tên này phải khớp với tên trong deployment.yaml
+          newName: $CI_REGISTRY_IMAGE
+          newTag: $CI_COMMIT_REF_SLUG
+      EOF
+    # 3. Tạo file patch để inject project_id và environment
+    - |
+      # File patch này sẽ được tạo trong thư mục overlay
+      cat <<EOF > k8s-overlay/$CI_ENVIRONMENT_NAME/labels-annotations.patch.yaml
+      - op: add
+        path: /spec/template/metadata/labels/project_id
+        value: $CI_PROJECT_NAME
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          logs.grafana.com/labels: "project_id=${CI_PROJECT_NAME},environment=${CI_ENVIRONMENT_NAME}"
+      EOF
+    # 4. Áp dụng Kustomize
+    - kubectl apply -k k8s-overlay/$CI_ENVIRONMENT_NAME
+  environment:
+    name: $CI_ENVIRONMENT_NAME
+    url: http://$CI_PROJECT_NAME.$CI_ENVIRONMENT_NAME.example.com
+  rules:
+    # Chỉ chạy job này nếu DEPLOY_TARGET là 'eks' hoặc 'aks' hoặc 'on-premise'
+    - if: '$DEPLOY_TARGET == "eks" || $DEPLOY_TARGET == "aks" || $DEPLOY_TARGET == "on-premise"' # <-- Điều kiện này khớp!
+      when: on_success

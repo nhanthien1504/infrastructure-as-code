@@ -1,0 +1,25 @@
+# ci-cd-templates/platforms/deploy-vm.yml
+
+deploy-to-vm:
+  stage: deploy
+  image: cytopia/ansible:latest # Image có chứa Ansible
+  script:
+    - echo "Deploying to VM using Ansible..."
+    # Cần có private key để SSH vào VM, lưu trong CI/CD Variables của GitLab
+    - echo "$ANSIBLE_SSH_PRIVATE_KEY" > private_key.pem
+    - chmod 600 private_key.pem
+    # Chạy playbook deploy-app-vm.yml
+    # -i: inventory file (có thể là file động)
+    # --limit: chỉ chạy trên các host thuộc group của project hiện tại
+    # --extra-vars: truyền các biến cần thiết vào playbook
+    - ansible-playbook /path/to/iac/ansible/playbooks/deploy-app-vm.yml \
+        -i /path/to/iac/ansible/inventory/aws.yml \
+        --limit "tag_Project_${CI_PROJECT_NAME}" \
+        --extra-vars "app_version=${CI_COMMIT_REF_SLUG} image_name=${CI_REGISTRY_IMAGE}" \
+        --private-key private_key.pem
+  environment:
+    name: $CI_ENVIRONMENT_NAME
+  rules:
+    # Chỉ chạy job này nếu DEPLOY_TARGET là 'vm'
+    - if: '$DEPLOY_TARGET == "vm"'
+      when: on_success

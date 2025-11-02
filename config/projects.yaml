@@ -1,2 +1,16 @@
-﻿projects: []
-# TODO: Dán danh sách 100 projects (xem mẫu trước đó)
+﻿projects:
+  # Đây là danh sách các project ứng dụng sẽ sử dụng mono-repo này.
+  # Tên project nên khớp với tên repo trong GitLab ($CI_PROJECT_NAME)
+  - name: project-alpha
+    owner: team-a@example.com
+    description: "Authentication Service"
+  - name: project-beta
+    owner: team-b@example.com
+    description: "Payment Gateway"
+  - name: project-gamma
+    owner: team-c@example.com
+    description: "User Profile Service"
+  - name: project-delta
+    owner: team-a@example.com
+    description: "Notification Service"
+  # ... Thêm các project khác vào đây
